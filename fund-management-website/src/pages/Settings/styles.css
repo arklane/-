@@ -1,0 +1,14 @@
+fund-website/
+├── backend/
+│   ├── server.js
+│   └── routes/
+│       └── fundRoutes.js
+├── frontend/
+│   ├── index.html
+│   ├── styles.css
+│   ├── script.js
+│   ├── pages/
+│   │   ├── popular-funds.html
+│   │   ├── fund-info.html
+│   │   └── settings.html
+└── package.json
