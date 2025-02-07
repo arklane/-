@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基金管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+        }
+
+        .nav {
+            width: 200px;
+            background-color: #333;
+            color: white;
+            padding: 20px 0;
+            height: 100vh;
+        }
+
+        .nav button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            background: none;
+            color: white;
+            font-size: 16px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .nav button:hover {
+            background-color: #444;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        .search-box {
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-box input, .search-box select {
+            padding: 8px;
+            margin-right: 10px;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fund-card {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+
+        .fund-card > div {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .fund-card h4 {
+            color: #333;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .fund-card p {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+
+        .fund-card strong {
+            color: #444;
+            font-weight: 600;
+            min-width: 100px;
+            display: inline-block;
+        }
+
+        .params-form {
+            max-width: 800px;
+            margin: 20px 0;
+        }
+
+        .params-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .params-table th[rowspan], .params-table th[colspan] {
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+
+        .params-result {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+
+        .weight-input {
+            width: 80px;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .weight-total {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .weight-error {
+            color: red;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .params-form button {
+            padding: 10px 20px;
+            background-color: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .params-form button:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+
+        td[data-type="code"] {
+            font-family: monospace;
+            text-align: center;
+        }
+
+        td[data-type="number"] {
+            text-align: right;
+        }
+
+        td[data-type="percentage"] {
+            text-align: right;
+        }
+
+        .growth-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .growth-info p {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+        }
+
+        .specific-info {
+            background-color: #f0f4f8 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <button onclick="showSection('hot-funds')">热门基金推荐</button>
+        <button onclick="showSection('fund-search')">基金信息查找</button>
+        <button onclick="showSection('index-enhanced')">指数增强型基金数据</button>
+        <button onclick="showSection('params')">调整参数</button>
+    </div>
+
+    <div class="content">
+        <div id="hot-funds" class="section">
+            <h2>热门基金推荐</h2>
+            <div id="hot-funds-list"></div>
+        </div>
+
+        <div id="fund-search" class="section" style="display: none;">
+            <h2>基金信息查找</h2>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="输入基金代码或名称搜索">
+                <select id="fund-type">
+                    <option value="all">全部类型</option>
+                    <option value="股票型">股票型</option>
+                    <option value="混合型">混合型</option>
+                    <option value="债券型">债券型</option>
+                    <option value="指数型">指数型</option>
+                </select>
+                <div class="filter-group">
+                    <label>资产规模基准(亿元)：</label>
+                    <input type="number" id="asset-threshold" min="0" step="0.01">
+                    <label>
+                        <input type="checkbox" id="enable-filter"> 开启过滤功能
+                    </label>
+                </div>
+            </div>
+            <div id="fund-table"></div>
+        </div>
+
+        <div id="index-enhanced" class="section" style="display: none;">
+            <h2>指数增强型基金数据</h2>
+            <div class="search-box">
+                <input type="text" id="index-search-input" placeholder="输入基金代码或名称搜索">
+            </div>
+            <div id="index-fund-table"></div>
+        </div>
+
+        <div id="params" class="section" style="display: none;">
+            <h2>调整参数</h2>
+            <div class="params-form">
+                <!-- 总评分表格 -->
+                <h3>总评分权重设置</h3>
+                <table class="params-table" id="total-score-table">
+                    <thead>
+                        <tr>
+                            <th>评估指标</th>
+                            <th>权重</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>评级评分</td>
+                            <td><input type="number" class="weight-input total-weight" id="rating_weight" min="0" max="1" step="0.1" value="0.3"></td>
+                        </tr>
+                        <tr>
+                            <td>业绩评分</td>
+                            <td><input type="number" class="weight-input total-weight" id="perform_weight" min="0" max="1" step="0.1" value="0.6"></td>
+                        </tr>
+                        <tr>
+                            <td>涨幅评分</td>
+                            <td><input type="number" class="weight-input total-weight" id="growth_weight" min="0" max="1" step="0.1" value="0.1"></td>
+                        </tr>
+                        <tr class="params-result">
+                            <td>合计</td>
+                            <td id="total-weight-sum">1.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- 评级评分表格 -->
+                <h3>评级评分权重设置</h3>
+                <table class="params-table" id="rating-score-table">
+                    <thead>
+                        <tr>
+                            <th>评级机构</th>
+                            <th>权重</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>上海证券</td>
+                            <td><input type="number" class="weight-input rating-weight" id="shanghai_weight" min="0" max="1" step="0.1" value="0.2"></td>
+                        </tr>
+                        <tr>
+                            <td>招商证券</td>
+                            <td><input type="number" class="weight-input rating-weight" id="zhaoshang_weight" min="0" max="1" step="0.1" value="0.2"></td>
+                        </tr>
+                        <tr>
+                            <td>济安金信</td>
+                            <td><input type="number" class="weight-input rating-weight" id="jian_weight" min="0" max="1" step="0.1" value="0.2"></td>
+                        </tr>
+                        <tr>
+                            <td>晨星</td>
+                            <td><input type="number" class="weight-input rating-weight" id="morningstar_weight" min="0" max="1" step="0.1" value="0.4"></td>
+                        </tr>
+                        <tr class="params-result">
+                            <td>合计</td>
+                            <td id="rating-weight-sum">1.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- 涨幅评分表格 -->
+                <h3>涨幅评分权重设置</h3>
+                <table class="params-table" id="growth-score-table">
+                    <thead>
+                        <tr>
+                            <th>涨幅指标</th>
+                            <th>权重</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>近3月</td>
+                            <td><input type="number" class="weight-input growth-weight" id="m3_weight" min="0" max="1" step="0.1" value="0.2"></td>
+                        </tr>
+                        <tr>
+                            <td>近6月</td>
+                            <td><input type="number" class="weight-input growth-weight" id="m6_weight" min="0" max="1" step="0.1" value="0.2"></td>
+                        </tr>
+                        <tr>
+                            <td>近1年</td>
+                            <td><input type="number" class="weight-input growth-weight" id="y1_weight" min="0" max="1" step="0.1" value="0.3"></td>
+                        </tr>
+                        <tr>
+                            <td>近2-5年</td>
+                            <td><input type="number" class="weight-input growth-weight" id="y25_weight" min="0" max="1" step="0.1" value="0.3"></td>
+                        </tr>
+                        <tr class="params-result">
+                            <td>合计</td>
+                            <td id="growth-weight-sum">1.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- 业绩评分（股票型/混合型）表格 -->
+                <h3>业绩评分权重设置（股票型/混合型）</h3>
+                <table class="params-table" id="stock-perf-table">
+                    <thead>
+                        <tr>
+                            <th>业绩指标</th>
+                            <th>权重</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>选证能力</td>
+                            <td><input type="number" class="weight-input stock-weight" id="stock_select_weight" min="0" max="1" step="0.1" value="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>收益率</td>
+                            <td><input type="number" class="weight-input stock-weight" id="stock_return_weight" min="0" max="1" step="0.1" value="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>抗风险</td>
+                            <td><input type="number" class="weight-input stock-weight" id="stock_risk_weight" min="0" max="1" step="0.1" value="0.6"></td>
+                        </tr>
+                        <tr>
+                            <td>稳定性</td>
+                            <td><input type="number" class="weight-input stock-weight" id="stock_stable_weight" min="0" max="1" step="0.1" value="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>择时能力</td>
+                            <td><input type="number" class="weight-input stock-weight" id="stock_timing_weight" min="0" max="1" step="0.1" value="0.1"></td>
+                        </tr>
+                        <tr class="params-result">
+                            <td>合计</td>
+                            <td id="stock-weight-sum">1.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- 业绩评分（债券型）表格 -->
+                <h3>业绩评分权重设置（债券型）</h3>
+                <table class="params-table" id="bond-perf-table">
+                    <thead>
+                        <tr>
+                            <th>业绩指标</th>
+                            <th>权重</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>选证能力</td>
+                            <td><input type="number" class="weight-input bond-weight" id="bond_select_weight" min="0" max="1" step="0.1" value="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>收益率</td>
+                            <td><input type="number" class="weight-input bond-weight" id="bond_return_weight" min="0" max="1" step="0.1" value="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>抗风险</td>
+                            <td><input type="number" class="weight-input bond-weight" id="bond_risk_weight" min="0" max="1" step="0.1" value="0.6"></td>
+                        </tr>
+                        <tr>
+                            <td>稳定性</td>
+                            <td><input type="number" class="weight-input bond-weight" id="bond_stable_weight" min="0" max="1" step="0.1" value="0.1"></td>
+                        </tr>
+                        <tr>
+                            <td>管理规模</td>
+                            <td><input type="number" class="weight-input bond-weight" id="bond_scale_weight" min="0" max="1" step="0.1" value="0.1"></td>
+                        </tr>
+                        <tr class="params-result">
+                            <td>合计</td>
+                            <td id="bond-weight-sum">1.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- 业绩评分（指数型）表格 -->
+                <h3>业绩评分权重设置（指数型）</h3>
+                <table class="params-table" id="index-perf-table">
+                    <thead>
+                        <tr>
+                            <th>业绩指标</th>
+                            <th>权重</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>选证能力</td>
+                            <td><input type="number" class="weight-input index-weight" id="index_select_weight" min="0" max="1" step="0.1" value="0.2"></td>
+                        </tr>
+                        <tr>
+                            <td>收益率</td>
+                            <td><input type="number" class="weight-input index-weight" id="index_return_weight" min="0" max="1" step="0.1" value="0.2"></td>
+                        </tr>
+                        <tr>
+                            <td>跟踪误差</td>
+                            <td><input type="number" class="weight-input index-weight" id="index_track_weight" min="0" max="1" step="0.1" value="0.2"></td>
+                        </tr>
+                        <tr>
+                            <td>超额收益</td>
+                            <td><input type="number" class="weight-input index-weight" id="index_excess_weight" min="0" max="1" step="0.1" value="0.2"></td>
+                        </tr>
+                        <tr>
+                            <td>管理规模</td>
+                            <td><input type="number" class="weight-input index-weight" id="index_scale_weight" min="0" max="1" step="0.1" value="0.2"></td>
+                        </tr>
+                        <tr class="params-result">
+                            <td>合计</td>
+                            <td id="index-weight-sum">1.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="weight-error" id="weight-error">权重总和不能超过1</div>
+                <button id="update-params" onclick="updateParams()">更新参数</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 在 body 结束标签前添加 -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <!-- 修改fund-card的显示内容 -->
+    <script id="fund-card-template" type="text/template">
+        <div class="fund-card">
+            <p>基金代码: ${String(fund.code).padStart(6, '0')}</p>
+            <p>基金名称: ${fund.name || ''}</p>
+            <p>基金经理: ${fund.manager || ''}</p>
+            <p>基金公司: ${fund.company || ''}</p>
+            <p>规模(亿元): ${fund.scale || ''}</p>
+            <p>综合评分: ${fund.total_score ? Number(fund.total_score).toFixed(2) : ''}</p>
+            <p>上海证券评级: ${fund.shanghai_rating || ''}</p>
+            <p>近1年涨幅: ${fund.y1_growth ? fund.y1_growth + '%' : ''}</p>
+        </div>
+    </script>
+</body>
+</html>
